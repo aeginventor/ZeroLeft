@@ -6,8 +6,12 @@ import 'providers/settings_provider.dart';
 import 'services/notification_service.dart';
 import 'services/database_service.dart';
 import 'screens/home_screen.dart';
+import 'screens/food_detail_screen.dart';
 import 'theme/app_theme.dart';
 import 'utils/constants.dart';
+
+// 글로벌 네비게이터 키
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   // Flutter 엔진 초기화
@@ -18,6 +22,22 @@ void main() async {
   
   // 알림 서비스 초기화
   await NotificationService.instance.initialize();
+  
+  // 알림 클릭 핸들러 설정
+  NotificationService.instance.onNotificationTapped = (payload) async {
+    if (payload != null && navigatorKey.currentContext != null) {
+      // 식품 ID로 식품 정보 가져오기
+      final food = await DatabaseService.instance.getFoodById(payload);
+      if (food != null && navigatorKey.currentContext != null) {
+        // 상세 화면으로 이동
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => FoodDetailScreen(food: food),
+          ),
+        );
+      }
+    }
+  };
   
   // 데이터베이스 초기화
   await DatabaseService.instance.database;
@@ -45,6 +65,7 @@ class MyApp extends StatelessWidget {
       child: Consumer<SettingsProvider>(
         builder: (context, settingsProvider, child) {
           return MaterialApp(
+            navigatorKey: navigatorKey,
             title: AppConstants.appName,
             debugShowCheckedModeBanner: false,
             
