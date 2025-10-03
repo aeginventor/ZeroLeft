@@ -91,8 +91,12 @@ class NotificationService {
   Future<bool> requestPermissions() async {
     if (Platform.isAndroid) {
       // Android 13 이상 알림 권한
-      final status = await Permission.notification.request();
-      return status.isGranted;
+      final notificationStatus = await Permission.notification.request();
+      
+      // Android 12+ 정확한 알림 권한
+      final exactAlarmStatus = await Permission.scheduleExactAlarm.request();
+      
+      return notificationStatus.isGranted && exactAlarmStatus.isGranted;
     } else if (Platform.isIOS) {
       // iOS 알림 권한
       final granted = await _notifications

@@ -11,6 +11,8 @@ class AnimatedFoodList extends StatelessWidget {
   final Function(FoodItem)? onTap;
   final Function(FoodItem, bool?)? onCheckChanged;
   final Function(FoodItem)? onDelete;
+  final String? emptyMessage;
+  final IconData? emptyIcon;
 
   const AnimatedFoodList({
     super.key,
@@ -19,10 +21,20 @@ class AnimatedFoodList extends StatelessWidget {
     this.onTap,
     this.onCheckChanged,
     this.onDelete,
+    this.emptyMessage,
+    this.emptyIcon,
   });
 
   @override
   Widget build(BuildContext context) {
+    // 빈 상태 처리
+    if (foods.isEmpty) {
+      return AnimatedEmptyState(
+        icon: emptyIcon ?? (isConsumed ? Icons.check_circle_outline : Icons.shopping_basket_outlined),
+        message: emptyMessage ?? (isConsumed ? '아직 소비 완료된 식품이 없습니다' : '아직 등록된 식품이 없습니다'),
+      );
+    }
+
     // 리스트가 너무 많으면 애니메이션 비활성화 (성능 최적화)
     final enableAnimation = foods.length < AppConstants.staggerAnimationLimit;
 

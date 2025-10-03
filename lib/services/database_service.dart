@@ -177,6 +177,19 @@ class DatabaseService {
     );
   }
   
+  /// 여러 식품 일괄 삭제
+  Future<void> deleteMultipleFoods(List<String> ids) async {
+    if (ids.isEmpty) return;
+    
+    final db = await database;
+    final placeholders = List.filled(ids.length, '?').join(',');
+    await db.delete(
+      'foods',
+      where: 'id IN ($placeholders)',
+      whereArgs: ids,
+    );
+  }
+  
   /// 식품을 소비 완료로 표시
   Future<void> markAsConsumed(String id) async {
     final db = await database;

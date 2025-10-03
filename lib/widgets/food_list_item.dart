@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:provider/provider.dart';
 import '../models/food_item.dart';
+import '../providers/selection_provider.dart';
 import '../utils/constants.dart';
 import '../utils/date_utils.dart' as app_date_utils;
 import 'remaining_days_badge.dart';
@@ -26,35 +28,45 @@ class FoodListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Slidable(
-      key: ValueKey(food.id),
-      endActionPane: ActionPane(
-        motion: const ScrollMotion(),
-        children: [
-          // 삭제 액션
-          SlidableAction(
-            onPressed: (context) {
-              if (onDelete != null) onDelete!();
-            },
-            backgroundColor: AppConstants.dangerRed,
-            foregroundColor: Colors.white,
-            icon: Icons.delete,
-            label: '삭제',
+    return Consumer<SelectionProvider>(
+      builder: (context, selectionProvider, child) {
+        final isSelectionMode = selectionProvider.isSelectionMode;
+        final isSelected = selectionProvider.isSelected(food.id);
+        
+        return Slidable(
+          key: ValueKey(food.id),
+          endActionPane: isSelectionMode ? null : ActionPane(
+            motion: const ScrollMotion(),
+            children: [
+              // 삭제 액션
+              SlidableAction(
+                onPressed: (context) {
+                  if (onDelete != null) onDelete!();
+                },
+                backgroundColor: AppConstants.dangerRed,
+                foregroundColor: Colors.white,
+                icon: Icons.delete,
+                label: '삭제',
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Card(
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-          child: Padding(
-            padding: const EdgeInsets.all(AppConstants.defaultPadding),
-            child: Row(
+          child: Card(
+            color: isSelected ? AppConstants.freshGreen.withValues(alpha: 0.1) : null,
+            child: InkWell(
+              onTap: isSelectionMode 
+                  ? () => selectionProvider.toggleSelection(food.id)
+                  : onTap,
+              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+              child: Padding(
+                padding: const EdgeInsets.all(AppConstants.defaultPadding),
+                child: Row(
               children: [
-                // 체크박스
+                // 체크박스 (다중 선택 모드일 때는 선택 상태, 아니면 소비 상태)
                 Checkbox(
-                  value: food.isConsumed,
-                  onChanged: onCheckChanged,
+                  value: isSelectionMode ? isSelected : food.isConsumed,
+                  onChanged: isSelectionMode 
+                      ? (value) => selectionProvider.toggleSelection(food.id)
+                      : onCheckChanged,
                 ),
                 const SizedBox(width: 12),
                 
@@ -132,6 +144,8 @@ class FoodListItem extends StatelessWidget {
           ),
         ),
       ),
+    );
+      },
     );
   }
 }

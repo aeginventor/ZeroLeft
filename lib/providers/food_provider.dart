@@ -20,6 +20,7 @@ class FoodProvider with ChangeNotifier {
   List<FoodItem> get foods => _foods;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get hasError => _error != null;
   
   /// 남은 음식 (보관 중)
   List<FoodItem> get remainingFoods {
@@ -84,6 +85,9 @@ class FoodProvider with ChangeNotifier {
       
       // 4. 리스트 새로고침
       await loadFoods();
+      
+      // 5. 추가 확인: UI 업데이트 보장
+      notifyListeners();
     } catch (e) {
       _error = '식품 추가 중 오류가 발생했습니다: $e';
       notifyListeners();
@@ -122,6 +126,26 @@ class FoodProvider with ChangeNotifier {
       await loadFoods();
     } catch (e) {
       _error = '식품 삭제 중 오류가 발생했습니다: $e';
+      notifyListeners();
+      rethrow;
+    }
+  }
+  
+  /// 여러 식품 일괄 삭제
+  Future<void> deleteMultipleFoods(List<String> foodIds) async {
+    try {
+      // 1. 모든 알림 취소
+      for (final foodId in foodIds) {
+        await _notification.cancelNotification(foodId);
+      }
+      
+      // 2. 데이터베이스에서 일괄 삭제
+      await _db.deleteMultipleFoods(foodIds);
+      
+      // 3. 리스트 새로고침
+      await loadFoods();
+    } catch (e) {
+      _error = '식품 일괄 삭제 중 오류가 발생했습니다: $e';
       notifyListeners();
       rethrow;
     }
