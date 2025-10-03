@@ -140,7 +140,9 @@ class SettingsScreen extends StatelessWidget {
               title: Text(AppConstants.notificationLabels[days] ?? 'D-$days'),
               leading: Radio<int>(
                 value: days,
+                // ignore: deprecated_member_use
                 groupValue: settingsProvider.settings.defaultNotificationDays,
+                // ignore: deprecated_member_use
                 onChanged: (value) {
                   Navigator.pop(context, value);
                 },
