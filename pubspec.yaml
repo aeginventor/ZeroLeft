@@ -1,0 +1,20 @@
+name: zeroleft
+description: "식료품 유통기한 관리 앱 - ZeroLeft"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  sqflite_common_ffi: ^2.3.0+4
+
+flutter:
+  uses-material-design: true
