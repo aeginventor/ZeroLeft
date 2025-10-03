@@ -110,27 +110,25 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ],
           ),
-          floatingActionButton: _tabController.index == 0
-              ? FloatingActionButton.extended(
-                  onPressed: () async {
-                    final result = await Navigator.push<bool>(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AddFoodScreen(),
-                      ),
-                    );
-                    
-                    // 추가 성공 시 리스트 새로고침
-                    if (result == true && mounted) {
-                      if (context.mounted) {
-                        context.read<FoodProvider>().loadFoods();
-                      }
-                    }
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text(AppConstants.addFoodButton),
-                )
-              : null,
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () async {
+              final result = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AddFoodScreen(),
+                ),
+              );
+              
+              // 추가 성공 시 리스트 새로고침
+              if (result == true && mounted) {
+                if (context.mounted) {
+                  context.read<FoodProvider>().loadFoods();
+                }
+              }
+            },
+            icon: const Icon(Icons.add),
+            label: const Text(AppConstants.addFoodButton),
+          ),
           floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         );
       },
