@@ -120,8 +120,13 @@ class _AutocompleteTextFieldState extends State<_AutocompleteTextField> {
     try {
       final suggestions = await _autocompleteService.getSuggestions(text);
       if (mounted) {
+        // 입력된 텍스트가 제안보다 길면 해당 제안을 필터링
+        final filteredSuggestions = suggestions.where((suggestion) {
+          return text.length <= suggestion.name.length;
+        }).toList();
+        
         setState(() {
-          _suggestions = suggestions;
+          _suggestions = filteredSuggestions;
           _isLoading = false;
         });
         _showOverlay();
