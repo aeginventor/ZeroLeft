@@ -6,6 +6,8 @@ import '../providers/food_provider.dart';
 import '../providers/settings_provider.dart';
 import '../utils/constants.dart';
 import '../utils/date_utils.dart' as app_date_utils;
+import '../widgets/autocomplete_text_field.dart';
+import '../widgets/favorite_grid.dart';
 
 /// 식품 등록 화면
 class AddFoodScreen extends StatefulWidget {
@@ -82,21 +84,61 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
         child: ListView(
           padding: const EdgeInsets.all(AppConstants.defaultPadding),
           children: [
-            // 식품 이름
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: AppConstants.labelFoodName,
-                hintText: AppConstants.hintFoodName,
-                prefixIcon: Icon(Icons.food_bank),
+            // 즐겨찾기 섹션 (신규 등록 시만 표시)
+            if (!_isEditing) ...[
+              Row(
+                children: [
+                  const Icon(Icons.star, color: AppConstants.warningYellow, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    '즐겨찾기',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 12),
+              FavoriteGrid(
+                onFavoriteSelected: (favorite) {
+                  setState(() {
+                    _nameController.text = favorite.name;
+                    _selectedCategory = favorite.category;
+                    if (favorite.defaultShelfLife != null) {
+                      _expiryDate = _purchaseDate.add(
+                        Duration(days: favorite.defaultShelfLife!),
+                      );
+                    }
+                  });
+                },
+              ),
+              const SizedBox(height: 24),
+            ],
+            
+            // 식품 이름 (자동완성)
+            AutocompleteTextField(
+              controller: _nameController,
+              labelText: AppConstants.labelFoodName,
+              hintText: AppConstants.hintFoodName,
+              prefixIcon: Icons.food_bank,
               autofocus: !_isEditing,
-              textCapitalization: TextCapitalization.words,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return '식품 이름을 입력해주세요';
                 }
                 return null;
+              },
+              onSuggestionSelected: (suggestion) {
+                setState(() {
+                  if (suggestion.category != null) {
+                    _selectedCategory = suggestion.category;
+                  }
+                  if (suggestion.defaultShelfLife != null && _expiryDate == null) {
+                    _expiryDate = _purchaseDate.add(
+                      Duration(days: suggestion.defaultShelfLife!),
+                    );
+                  }
+                });
               },
             ),
             const SizedBox(height: 20),
