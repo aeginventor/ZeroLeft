@@ -95,7 +95,7 @@ class AnimatedEmptyState extends StatelessWidget {
               return Transform.scale(
                 scale: value,
                 child: Opacity(
-                  opacity: value,
+                  opacity: value.clamp(0.0, 1.0),
                   child: child,
                 ),
               );
@@ -113,7 +113,7 @@ class AnimatedEmptyState extends StatelessWidget {
             curve: Curves.easeOut,
             builder: (context, value, child) {
               return Opacity(
-                opacity: value,
+                opacity: value.clamp(0.0, 1.0),
                 child: Transform.translate(
                   offset: Offset(0, 20 * (1 - value)),
                   child: child,
