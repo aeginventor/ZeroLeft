@@ -138,6 +138,9 @@ class _AutocompleteTextFieldState extends State<_AutocompleteTextField> {
 
   void _showOverlay() {
     if (_overlayEntry != null) return;
+    
+    // 검색 결과가 없으면 오버레이를 표시하지 않음
+    if (_suggestions.isEmpty) return;
 
     _overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
@@ -150,50 +153,42 @@ class _AutocompleteTextFieldState extends State<_AutocompleteTextField> {
             borderRadius: BorderRadius.circular(8),
             child: Container(
               constraints: const BoxConstraints(maxHeight: 200),
-              child: _suggestions.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text(
-                        '검색 결과가 없습니다',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    )
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: _suggestions.length,
-                      itemBuilder: (context, index) {
-                        final suggestion = _suggestions[index];
-                        return ListTile(
-                          leading: Text(
-                            suggestion.icon,
-                            style: const TextStyle(fontSize: 24),
-                          ),
-                          title: Text(suggestion.name),
-                          subtitle: suggestion.category != null
-                              ? Text(suggestion.category!)
-                              : null,
-                          trailing: suggestion.source == SuggestionSource.favorite
-                              ? const Icon(Icons.star, color: AppConstants.warningYellow, size: 20)
-                              : suggestion.usageCount != null && suggestion.usageCount! > 1
-                                  ? Text(
-                                      '${suggestion.usageCount}회',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
-                                    )
-                                  : null,
-                          onTap: () {
-                            widget.controller.text = suggestion.name;
-                            if (widget.onSuggestionSelected != null) {
-                              widget.onSuggestionSelected!(suggestion);
-                            }
-                            _removeOverlay();
-                            _focusNode.unfocus();
-                          },
-                        );
-                      },
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _suggestions.length,
+                itemBuilder: (context, index) {
+                  final suggestion = _suggestions[index];
+                  return ListTile(
+                    leading: Text(
+                      suggestion.icon,
+                      style: const TextStyle(fontSize: 24),
                     ),
+                    title: Text(suggestion.name),
+                    subtitle: suggestion.category != null
+                        ? Text(suggestion.category!)
+                        : null,
+                    trailing: suggestion.source == SuggestionSource.favorite
+                        ? const Icon(Icons.star, color: AppConstants.warningYellow, size: 20)
+                        : suggestion.usageCount != null && suggestion.usageCount! > 1
+                            ? Text(
+                                '${suggestion.usageCount}회',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              )
+                            : null,
+                    onTap: () {
+                      widget.controller.text = suggestion.name;
+                      if (widget.onSuggestionSelected != null) {
+                        widget.onSuggestionSelected!(suggestion);
+                      }
+                      _removeOverlay();
+                      _focusNode.unfocus();
+                    },
+                  );
+                },
+              ),
             ),
           ),
         ),
