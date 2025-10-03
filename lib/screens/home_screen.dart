@@ -5,6 +5,7 @@ import '../widgets/food_list_item.dart';
 import '../utils/constants.dart';
 import 'add_food_screen.dart';
 import 'settings_screen.dart';
+import 'food_detail_screen.dart';
 
 /// 홈 화면 (메인 화면)
 /// 
@@ -169,8 +170,18 @@ class _RemainingFoodList extends StatelessWidget {
               final food = remainingFoods[index];
               return FoodListItem(
                 food: food,
-                onTap: () {
-                  // TODO: 식품 상세 화면으로 이동
+                onTap: () async {
+                  // 식품 상세 화면으로 이동
+                  final result = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FoodDetailScreen(food: food),
+                    ),
+                  );
+                  
+                  if (result == true && context.mounted) {
+                    await foodProvider.loadFoods();
+                  }
                 },
                 onCheckChanged: (value) async {
                   if (value == true) {
@@ -271,8 +282,18 @@ class _ConsumedFoodList extends StatelessWidget {
               return FoodListItem(
                 food: food,
                 isConsumed: true,
-                onTap: () {
-                  // TODO: 식품 상세 화면으로 이동
+                onTap: () async {
+                  // 식품 상세 화면으로 이동
+                  final result = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FoodDetailScreen(food: food),
+                    ),
+                  );
+                  
+                  if (result == true && context.mounted) {
+                    await foodProvider.loadFoods();
+                  }
                 },
                 onCheckChanged: (value) async {
                   if (value == false) {
