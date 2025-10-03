@@ -98,13 +98,28 @@ class FoodProvider with ChangeNotifier {
   /// 식품 수정
   Future<void> updateFood(FoodItem food) async {
     try {
+      // 기존 식품 정보 가져오기 (이름 변경 확인용)
+      final existingFood = _foods.firstWhere(
+        (f) => f.id == food.id,
+        orElse: () => food,
+      );
+      
       // 1. 데이터베이스 업데이트
       await _db.updateFood(food);
       
-      // 2. 알림 업데이트
+      // 2. 식품명이나 카테고리가 변경된 경우 자동완성 제안 업데이트
+      if (existingFood.name != food.name || existingFood.category != food.category) {
+        await _db.updateFoodNameInSuggestions(
+          existingFood.name,
+          food.name,
+          food.category,
+        );
+      }
+      
+      // 3. 알림 업데이트
       await _notification.updateNotification(food);
       
-      // 3. 리스트 새로고침
+      // 4. 리스트 새로고침
       await loadFoods();
     } catch (e) {
       _error = '식품 수정 중 오류가 발생했습니다: $e';

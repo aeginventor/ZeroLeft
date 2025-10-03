@@ -96,6 +96,13 @@ class AutocompleteService {
     
     await _db.addOrUpdateRecentItem(recentItem);
   }
+
+  /// 식품 수정 시 자동완성 제안 업데이트
+  /// 
+  /// 식품명이나 카테고리가 변경된 경우 최근 항목과 즐겨찾기도 함께 업데이트
+  Future<void> updateFoodInSuggestions(String oldName, String newName, String? newCategory) async {
+    await _db.updateFoodNameInSuggestions(oldName, newName, newCategory);
+  }
   
   /// 오래된 최근 항목 자동 정리
   /// 

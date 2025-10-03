@@ -332,6 +332,33 @@ class DatabaseService {
       whereArgs: [name],
     );
   }
+
+  /// 식품명 변경 시 최근 항목과 즐겨찾기 업데이트
+  Future<void> updateFoodNameInSuggestions(String oldName, String newName, String? newCategory) async {
+    final db = await database;
+    
+    // 1. 최근 항목 업데이트
+    await db.update(
+      'recent_items',
+      {
+        'name': newName,
+        'category': newCategory,
+      },
+      where: 'name = ?',
+      whereArgs: [oldName],
+    );
+    
+    // 2. 즐겨찾기 업데이트
+    await db.update(
+      'favorites',
+      {
+        'name': newName,
+        'category': newCategory,
+      },
+      where: 'name = ?',
+      whereArgs: [oldName],
+    );
+  }
   
   /// 모든 즐겨찾기 조회
   Future<List<FavoriteItem>> getAllFavorites() async {
