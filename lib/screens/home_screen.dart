@@ -142,7 +142,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           
           // 추가 성공 시 리스트 새로고침
           if (result == true && mounted) {
-            context.read<FoodProvider>().loadFoods();
+            if (context.mounted) {
+              context.read<FoodProvider>().loadFoods();
+            }
           }
         },
         icon: const Icon(Icons.add),
