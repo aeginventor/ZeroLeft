@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// 앱 전체에서 사용하는 상수 정의
 class AppConstants {
   // 앱 정보
-  static const String appName = 'FreshMate';
+  static const String appName = 'ZeroLeft';
   static const String appNameKorean = '남김없이';
   
   // 색상 정의 (Material 3 기반)
