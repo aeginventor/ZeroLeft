@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/food_provider.dart';
-import '../widgets/food_list_item.dart';
+import '../providers/filter_provider.dart';
+import '../widgets/animated_food_list.dart';
+import '../widgets/search_filter_bar.dart';
 import '../utils/constants.dart';
 import 'add_food_screen.dart';
 import 'settings_screen.dart';
@@ -19,6 +21,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _showSearchBar = false;
 
   @override
   void initState() {
@@ -35,6 +38,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+  
+  void _toggleSearchBar() {
+    setState(() {
+      _showSearchBar = !_showSearchBar;
+      if (!_showSearchBar) {
+        // 검색 바 숨길 때 필터 초기화
+        context.read<FilterProvider>().clearFilters();
+      }
+    });
   }
 
   @override
@@ -64,6 +77,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         ),
         centerTitle: true,
         actions: [
+          // 검색 버튼
+          IconButton(
+            icon: Icon(_showSearchBar ? Icons.close : Icons.search),
+            onPressed: _toggleSearchBar,
+            tooltip: '검색',
+          ),
+          
           // 설정 버튼
           IconButton(
             icon: const Icon(Icons.settings),
@@ -86,13 +106,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          // 탭 1: 신선하게 보관중 (남은 음식)
-          _RemainingFoodList(),
-          // 탭 2: 소비 완료! (먹은 음식)
-          _ConsumedFoodList(),
+          // 검색 및 필터 바
+          if (_showSearchBar)
+            AnimatedContainer(
+              duration: AppConstants.normalAnimation,
+              curve: Curves.easeInOut,
+              child: const SearchFilterBar(),
+            ),
+          
+          // 탭 뷰
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // 탭 1: 신선하게 보관중 (남은 음식)
+                _RemainingFoodList(showSearchBar: _showSearchBar),
+                // 탭 2: 소비 완료! (먹은 음식)
+                _ConsumedFoodList(showSearchBar: _showSearchBar),
+              ],
+            ),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -120,107 +155,94 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
 /// 남은 음식 리스트 (보관 중)
 class _RemainingFoodList extends StatelessWidget {
+  final bool showSearchBar;
+  
+  const _RemainingFoodList({required this.showSearchBar});
+  
   @override
   Widget build(BuildContext context) {
-    return Consumer<FoodProvider>(
-      builder: (context, foodProvider, child) {
-        final remainingFoods = foodProvider.remainingFoods;
+    return Consumer2<FoodProvider, FilterProvider>(
+      builder: (context, foodProvider, filterProvider, child) {
+        final allRemainingFoods = foodProvider.remainingFoods;
+        final remainingFoods = showSearchBar
+            ? filterProvider.applyFilters(allRemainingFoods)
+            : allRemainingFoods;
 
         // 로딩 중
         if (foodProvider.isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(),
+          return const AnimatedLoadingIndicator(
+            message: '식품 목록을 불러오는 중...',
           );
         }
 
         // 빈 상태
         if (remainingFoods.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.shopping_basket_outlined,
-                  size: 80,
-                  color: Colors.grey[400],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  AppConstants.emptyRemainingFood,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.grey[600],
-                      ),
-                ),
-              ],
-            ),
+          final message = showSearchBar && filterProvider.hasActiveFilters
+              ? '검색 결과가 없습니다'
+              : AppConstants.emptyRemainingFood;
+          
+          return AnimatedEmptyState(
+            icon: Icons.shopping_basket_outlined,
+            message: message,
+            subtitle: showSearchBar && filterProvider.hasActiveFilters
+                ? '다른 검색어나 필터를 시도해보세요'
+                : null,
           );
         }
 
         // 리스트 표시
         return RefreshIndicator(
           onRefresh: () => foodProvider.loadFoods(),
-          child: ListView.builder(
-            padding: const EdgeInsets.only(
-              top: AppConstants.defaultPadding,
-              bottom: 80, // FAB 공간 확보
-            ),
-            itemCount: remainingFoods.length,
-            itemBuilder: (context, index) {
-              final food = remainingFoods[index];
-              return FoodListItem(
-                food: food,
-                onTap: () async {
-                  // 식품 상세 화면으로 이동
-                  final result = await Navigator.push<bool>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FoodDetailScreen(food: food),
-                    ),
-                  );
-                  
-                  if (result == true && context.mounted) {
-                    await foodProvider.loadFoods();
-                  }
-                },
-                onCheckChanged: (value) async {
-                  if (value == true) {
-                    await foodProvider.markAsConsumed(food.id);
-                  }
-                },
-                onDelete: () async {
-                  // 삭제 확인 다이얼로그
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text(AppConstants.deleteConfirmTitle),
-                      content: Text('${food.name}을(를) ${AppConstants.deleteConfirmMessage}'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('취소'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text('삭제'),
-                        ),
-                      ],
-                    ),
-                  );
-
-                  if (confirmed == true) {
-                    await foodProvider.deleteFood(food.id);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(AppConstants.deleteSuccess),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  }
-                },
+          child: AnimatedFoodList(
+            foods: remainingFoods,
+            isConsumed: false,
+            onTap: (food) async {
+              final result = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FoodDetailScreen(food: food),
+                ),
               );
+              
+              if (result == true && context.mounted) {
+                await foodProvider.loadFoods();
+              }
+            },
+            onCheckChanged: (food, value) async {
+              if (value == true) {
+                await foodProvider.markAsConsumed(food.id);
+              }
+            },
+            onDelete: (food) async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text(AppConstants.deleteConfirmTitle),
+                  content: Text('${food.name}을(를) ${AppConstants.deleteConfirmMessage}'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('취소'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('삭제'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed == true) {
+                await foodProvider.deleteFood(food.id);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(AppConstants.deleteSuccess),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }
             },
           ),
         );
@@ -231,108 +253,92 @@ class _RemainingFoodList extends StatelessWidget {
 
 /// 소비 완료 음식 리스트
 class _ConsumedFoodList extends StatelessWidget {
+  final bool showSearchBar;
+  
+  const _ConsumedFoodList({required this.showSearchBar});
+  
   @override
   Widget build(BuildContext context) {
-    return Consumer<FoodProvider>(
-      builder: (context, foodProvider, child) {
-        final consumedFoods = foodProvider.consumedFoods;
+    return Consumer2<FoodProvider, FilterProvider>(
+      builder: (context, foodProvider, filterProvider, child) {
+        final allConsumedFoods = foodProvider.consumedFoods;
+        final consumedFoods = showSearchBar
+            ? filterProvider.applyFilters(allConsumedFoods)
+            : allConsumedFoods;
 
         // 로딩 중
         if (foodProvider.isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const AnimatedLoadingIndicator();
         }
 
         // 빈 상태
         if (consumedFoods.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.check_circle_outline,
-                  size: 80,
-                  color: Colors.grey[400],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  AppConstants.emptyConsumedFood,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.grey[600],
-                      ),
-                ),
-              ],
-            ),
+          final message = showSearchBar && filterProvider.hasActiveFilters
+              ? '검색 결과가 없습니다'
+              : AppConstants.emptyConsumedFood;
+          
+          return AnimatedEmptyState(
+            icon: Icons.check_circle_outline,
+            message: message,
+            subtitle: showSearchBar && filterProvider.hasActiveFilters
+                ? '다른 검색어나 필터를 시도해보세요'
+                : null,
           );
         }
 
         // 리스트 표시
         return RefreshIndicator(
           onRefresh: () => foodProvider.loadFoods(),
-          child: ListView.builder(
-            padding: const EdgeInsets.only(
-              top: AppConstants.defaultPadding,
-              bottom: 80,
-            ),
-            itemCount: consumedFoods.length,
-            itemBuilder: (context, index) {
-              final food = consumedFoods[index];
-              return FoodListItem(
-                food: food,
-                isConsumed: true,
-                onTap: () async {
-                  // 식품 상세 화면으로 이동
-                  final result = await Navigator.push<bool>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FoodDetailScreen(food: food),
-                    ),
-                  );
-                  
-                  if (result == true && context.mounted) {
-                    await foodProvider.loadFoods();
-                  }
-                },
-                onCheckChanged: (value) async {
-                  if (value == false) {
-                    // 다시 보관 중으로 변경
-                    await foodProvider.markAsUnconsumed(food.id);
-                  }
-                },
-                onDelete: () async {
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text(AppConstants.deleteConfirmTitle),
-                      content: Text('${food.name}을(를) ${AppConstants.deleteConfirmMessage}'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('취소'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text('삭제'),
-                        ),
-                      ],
-                    ),
-                  );
-
-                  if (confirmed == true) {
-                    await foodProvider.deleteFood(food.id);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(AppConstants.deleteSuccess),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  }
-                },
+          child: AnimatedFoodList(
+            foods: consumedFoods,
+            isConsumed: true,
+            onTap: (food) async {
+              final result = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FoodDetailScreen(food: food),
+                ),
               );
+              
+              if (result == true && context.mounted) {
+                await foodProvider.loadFoods();
+              }
+            },
+            onCheckChanged: (food, value) async {
+              if (value == false) {
+                await foodProvider.markAsUnconsumed(food.id);
+              }
+            },
+            onDelete: (food) async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text(AppConstants.deleteConfirmTitle),
+                  content: Text('${food.name}을(를) ${AppConstants.deleteConfirmMessage}'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('취소'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('삭제'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed == true) {
+                await foodProvider.deleteFood(food.id);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(AppConstants.deleteSuccess),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }
             },
           ),
         );
