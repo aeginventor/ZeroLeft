@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'providers/food_provider.dart';
 import 'providers/settings_provider.dart';
+import 'providers/filter_provider.dart';
 import 'services/notification_service.dart';
 import 'services/database_service.dart';
 import 'screens/home_screen.dart';
@@ -60,6 +61,11 @@ class MyApp extends StatelessWidget {
         // 식품 Provider
         ChangeNotifierProvider(
           create: (_) => FoodProvider(),
+        ),
+        
+        // 필터 Provider
+        ChangeNotifierProvider(
+          create: (_) => FilterProvider(),
         ),
       ],
       child: Consumer<SettingsProvider>(
